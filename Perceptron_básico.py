@@ -1,6 +1,17 @@
 import numpy as np
 
-### Algoritmo realizado con base en el algoritmo de la página 47 del libro: "Machine Learnum_entradag: An Algorithmic Perspective de Stephen Marsland"
+### Algoritmos realizados con base en los algoritmos del libro: "Machine Learnum_entradag: An Algorithmic Perspective de Stephen Marsland"
+
+
+def linreg(entradas,targets):
+
+	entradas = np.concatenate((entradas,-np.ones((np.shape(entradas)[0],1))),axis=1)
+	beta = np.dot(np.dot(np.linalg.inv(np.dot(np.transpose(entradas),entradas)),np.transpose(entradas)),targets)
+
+	outputs = np.dot(entradas,beta)
+	print np.shape(beta)
+	print outputs
+	return beta
 
 class pcn:
 	""" Básico perceptron"""
@@ -39,3 +50,17 @@ class pcn:
 				cm[i,j] = np.sum(np.where(salidas==i,1,0)*np.where(resultados==j,1,0))
 		print cm
 		print np.trace(cm)/np.sum(cm)
+		
+
+
+def normalizacion(datos,targets):
+	##axis = 0 suma columnas y axis = 1 suma las filas de una matriz.
+	return((datos-datos.mean(axis = 0))/datos.var(axis = 0),(targets-targets.mean(axis = 0))/targets.var(axis = 0))
+
+
+
+
+
+
+
+
