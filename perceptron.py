@@ -153,7 +153,7 @@ class mlpcn(): #solo de un layer oculto.
 			pesos2_nuevos = eta*(np.dot(np.transpose(self.activaciones_ocultas),delta_o)) + self.momentum*pesos2_nuevos
 			self.pesos1 -= pesos1_nuevos
 			self.pesos2 -= pesos2_nuevos
-	def mlp_secuencial_entrenamiento(self,entradas, targets, eta, iteraciones, tau):
+	def mlp_secuencial_entrenamiento(self,entradas, targets, eta, iteraciones, tau, grafica_curva_de_apr = False, early_stoping = False):
 		datos         = np.concatenate((entradas, -np.ones((self.n_datos,1))), axis = 1)
 		pesos1_nuevos = np.zeros(np.shape(self.pesos1))
 		pesos2_nuevos = np.zeros(np.shape(self.pesos2))
@@ -171,10 +171,10 @@ class mlpcn(): #solo de un layer oculto.
 				else:
 					print("aun no implemento esta funcion de activacion")
 				#ahora delta_o es un vector de activaciones, 
-				delta_h = self.beta*self.activaciones_ocultas*(1-self.activaciones_ocultas)*(np.dot(delta_o,np.transpose(self.pesos2)))
+				delta_h = self.beta*self.activaciones_ocultas*(1-self.activaciones_ocultas)*(np.dot(delta_o,np.transpose(self.pesos2))) #checkmark
 				#nuevos pesos:
 				pesos1_nuevos = eta*(np.dot(np.transpose(delta_h),datos[k,:-1])) + self.momentum*pesos1_nuevos
-				pesos2_nuevos = eta*(np.dot(np.transpose(self.activaciones_ocultas).reshape(self.n_nodoc+1,1),delta_o.reshape(-1,self.n_out))) + self.momentum*pesos2_nuevos
+				pesos2_nuevos = eta*(np.dot(self.activaciones_ocultas.reshape(self.n_nodoc+1,1),delta_o.reshape(1,self.n_out))) + self.momentum*pesos2_nuevos
 				self.pesos1 -= pesos1_nuevos
 				self.pesos2 -= pesos2_nuevos
 			self.predicciones = self.mlp_forward(datos)
@@ -212,5 +212,8 @@ class mlpcn(): #solo de un layer oculto.
 	def prediccion(self, entrada): #asumiré que no se da la entrada con el menos uno.
 		entrada = np.append(entrada,-1)
 		return(self.mlp_forward_seq(entrada))
+
+		
+
 
 		
