@@ -126,14 +126,19 @@ class mlpcn(): #solo de un layer oculto.
 		#generamos las matrices de pesos para una red neuronal de una sola capa oculta
 		self.pesos1 = (np.random.rand(self.n_caract+1,self.n_nodoc)-0.5)*2/np.sqrt(self.n_caract) #tan cercano como se pueda al 0 para conservar comportameinto lineal.
 		self.pesos2 = (np.random.rand(self.n_nodoc+1,self.n_out)-0.5)*2/np.sqrt(self.n_nodoc)     #tan cercano como se pueda al 0 para conservar comportameinto lineal.
-	def mlp_batch_entrenamiento(self,entradas, targets, eta, iteraciones, tau): #tau es para ir calculando el error cada tau iteraciones ***
+	def mlp_batch_entrenamiento(self,entradas, targets, eta, iteraciones, tau, grafica_curva_de_apr = False): 
+		#tau es para ir calculando el error cada tau iteraciones *** tambien, 
+		#este algoritmo no necesita un early stop pq es segura su convergencia.
 		datos         = np.concatenate((entradas, -np.ones((self.n_datos,1))), axis = 1)
 		pesos1_nuevos = np.zeros(np.shape(self.pesos1))
 		pesos2_nuevos = np.zeros(np.shape(self.pesos2))
+		if grafica_curva_de_apr == True:
+				dominio     = [i for i in range(iteraciones)]
+				error_mse   = []
 		for n in range(iteraciones):
 			self.predicciones = self.mlp_forward(datos)
-			#if (np.mod(n,tau) == 0): ## ***
-			#	print("Iteración: ", n, " tiene error de ", 0.5*np.sum((self.predicciones-targets)**2))
+			if grafica_curva_de_apr == True:
+				error_mse.append(0.5*np.sum((self.predicciones-targets)**2))
 			#distintos tipos de dalidas debido a sus distintas funciones de activacion:
 			if self.tipo_funact == "lineal":
 				res1 = self.predicciones-targets
@@ -153,7 +158,18 @@ class mlpcn(): #solo de un layer oculto.
 			pesos2_nuevos = eta*(np.dot(np.transpose(self.activaciones_ocultas),delta_o)) + self.momentum*pesos2_nuevos
 			self.pesos1 -= pesos1_nuevos
 			self.pesos2 -= pesos2_nuevos
-	def mlp_secuencial_entrenamiento(self,entradas, targets, eta, iteraciones, tau):
+		if grafica_curva_de_apr == True:
+			plt.plot(dominio, error_mse)
+			plt.title("batch")
+			plt.xlabel("n")
+			plt.ylabel("error")
+			plt.show()
+	def mlp_secuencial_entrenamiento(self,entradas, targets, eta, iteraciones, tau=100, grafica_curva_de_apr = False): 
+		# de acuerdo a las gráficas este método definitivamente necesita un early stopping. Implementación que no deseo hacer, mas bien implementaré el 
+		# early stopping del no secuencial, del batch. Hasta aquí llega mi trabajo en secuencial. 
+		if grafica_curva_de_apr == True:
+			dominio     = [i for i in range(iteraciones)]
+			error_mse   = []
 		datos         = np.concatenate((entradas, -np.ones((self.n_datos,1))), axis = 1)
 		pesos1_nuevos = np.zeros(np.shape(self.pesos1))
 		pesos2_nuevos = np.zeros(np.shape(self.pesos2))
@@ -171,15 +187,24 @@ class mlpcn(): #solo de un layer oculto.
 				else:
 					print("aun no implemento esta funcion de activacion")
 				#ahora delta_o es un vector de activaciones, 
-				delta_h = self.beta*self.activaciones_ocultas*(1-self.activaciones_ocultas)*(np.dot(delta_o,np.transpose(self.pesos2)))
+				#print(self.activaciones_ocultas,np.dot(delta_o,np.transpose(self.pesos2)))
+				delta_h = self.beta*self.activaciones_ocultas[:-1]*(1-self.activaciones_ocultas[:-1])*(np.dot(delta_o,np.transpose(self.pesos2))[:-1]) #checkmark
 				#nuevos pesos:
-				pesos1_nuevos = eta*(np.dot(np.transpose(delta_h),datos[k,:-1])) + self.momentum*pesos1_nuevos
-				pesos2_nuevos = eta*(np.dot(np.transpose(self.activaciones_ocultas).reshape(self.n_nodoc+1,1),delta_o.reshape(-1,self.n_out))) + self.momentum*pesos2_nuevos
+				#print(delta_h)
+				#print(pesos1_nuevos, np.dot(datos[k,:-1].reshape((datos[k,:-1].shape[0],1)),delta_h.reshape((1,delta_h.shape[0]))))
+				pesos1_nuevos = eta*np.dot(datos[k,:].reshape((datos[k,:].shape[0],1)),delta_h.reshape((1,delta_h.shape[0]))) + self.momentum*pesos1_nuevos #not
+				pesos2_nuevos = eta*(np.dot(self.activaciones_ocultas.reshape(self.n_nodoc+1,1),delta_o.reshape(1,self.n_out))) + self.momentum*pesos2_nuevos #check
 				self.pesos1 -= pesos1_nuevos
 				self.pesos2 -= pesos2_nuevos
 			self.predicciones = self.mlp_forward(datos)
-			#if (np.mod(n,tau) == 0): ## ***
-			#	print("Iteración: ", n, " tiene error de ", 0.5*np.sum((self.predicciones-targets)**2))
+			if grafica_curva_de_apr == True:
+				error_mse.append(0.5*np.sum((self.predicciones-targets)**2))
+		if grafica_curva_de_apr == True:
+			plt.plot(dominio, error_mse)
+			plt.title("secuencial")
+			plt.xlabel("n")
+			plt.ylabel("error")
+			plt.show()
 	def mlp_forward(self,entradas):
 		self.activaciones_ocultas = np.dot(entradas,self.pesos1) #esto debio de cambiarlo para el algoritmo secuencial
 		self.activaciones_ocultas = 1.0/(1.0+np.exp(-self.beta*self.activaciones_ocultas))
@@ -208,7 +233,6 @@ class mlpcn(): #solo de un layer oculto.
 			return(np.exp(predicciones)/dens)
 		else:
 			print("aun no implementa esa funcion")
-	
 	def prediccion(self, entrada): #asumiré que no se da la entrada con el menos uno.
 		entrada = np.append(entrada,-1)
 		return(self.mlp_forward_seq(entrada))
